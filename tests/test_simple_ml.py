@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-import numdifftools as nd
+import numdifftools as nd # 自动微分库
 sys.path.append("./src")
 import mugrade
 from simple_ml import *

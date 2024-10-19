@@ -1,3 +1,4 @@
+from cProfile import label
 import struct
 import numpy as np
 import gzip
@@ -20,7 +21,7 @@ def add(x, y):
         Sum of x + y
     """
     ### BEGIN YOUR CODE
-    pass
+    return x + y
     ### END YOUR CODE
 
 
@@ -48,7 +49,39 @@ def parse_mnist(image_filename, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR CODE
-    pass
+    # use python gzip to read file https://docs.python.org/3/library/gzip.html
+    images = []
+    labels = []
+    with gzip.open(image_filename) as f:
+        chunk = f.read(4) # read 4 bytes
+        # python struct https://docs.python.org/3/library/struct.html
+        examples = struct.unpack('>i', f.read(4))[0] # examples 数据以大端格式存储
+        rows = struct.unpack('>i', f.read(4))[0]
+        cols = struct.unpack('>i', f.read(4))[0]
+        print(examples, rows, cols)
+        while True:
+            # every single pixel is one bytes
+            single_image_bytes = f.read(rows*cols)
+            if not single_image_bytes:
+                break
+            # print(np.frombuffer(single_image_bytes, dtype=np.uint8).shape)
+            single_image = np.frombuffer(single_image_bytes, dtype=np.uint8)
+            single_image = single_image / 255.0
+            images.append(single_image)
+    images = np.stack(images, axis = 0).astype(np.float32)
+    
+    with gzip.open(label_filename, "rb") as f:
+        f.read(4)
+        examples = struct.unpack('>i', f.read(4))[0]
+        print(examples)
+        while True:
+            chunk = f.read(1)
+            if not chunk:
+                break
+            single_label = struct.unpack('>B', chunk)
+            labels.append(single_label)
+    labels = np.array(labels, dtype = np.uint8).flatten()
+    return (images, labels)
     ### END YOUR CODE
 
 
@@ -68,7 +101,15 @@ def softmax_loss(Z, y):
         Average softmax loss over the sample.
     """
     ### BEGIN YOUR CODE
-    pass
+    Z_exp = np.exp(Z)
+    Z_exp_sum_row = np.sum(Z_exp, axis = 1)
+    Z_exp_sum_row_log = np.log(Z_exp_sum_row)
+    row_index = np.array(list(range(Z.shape[0])))
+    col_index = y
+    p = Z[row_index, col_index]
+    loss = Z_exp_sum_row_log - p
+    loss = np.sum(loss) / Z.shape[0]
+    return loss
     ### END YOUR CODE
 
 
@@ -91,7 +132,16 @@ def softmax_regression_epoch(X, y, theta, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    # print(X.shape, theta.shape)
+    iters = X.shape[0] // batch # need multi_step update
+    eye = np.eye(np.max(y) + 1)
+    for i in range(iters):
+        X_batch = X[i*batch : (i+1)*batch]
+        y_batch = y[i*batch : (i+1)*batch]
+        Z = X_batch @ theta # [num_examples, input_dim] * [input_dim, num_classes]
+        Z_normalize = np.exp(Z) / np.sum(np.exp(Z), axis = 1).reshape(-1,1)
+        I_y = eye[y_batch] # [num_examples, num_classes] one-hot
+        theta -= lr / batch * (np.transpose(X_batch) @ (Z_normalize - I_y))
     ### END YOUR CODE
 
 
