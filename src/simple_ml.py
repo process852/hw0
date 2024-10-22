@@ -168,10 +168,33 @@ def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    num_examples = X.shape[0]
+    i = 0
+    while i + batch < num_examples:
+        inputs = X[i : i + batch]
+        labels = y[i : i + batch]
+        nn_epoch_batch(inputs, labels, W1, W2, lr)
+        i += batch
+    if i < num_examples:
+        inputs = X[i : num_examples]
+        labels = y[i : num_examples]
+        nn_epoch_batch(inputs, labels, W1, W2, lr)
+    
     ### END YOUR CODE
 
-
+def nn_epoch_batch(X, y, W1, W2, lr = 0.1):
+    z1 = np.matmul(X, W1) # (num_examples, input_dim) * (input_dim, hidden_dim)
+    z1_relu = np.where(z1 >= 0.0, z1, 0.0) # (num_examples, hidden_dim)
+    z2 = np.matmul(z1_relu, W2) # (num_examples, hidden_dim) * (hidden_dim, num_classes)
+    z2_exp = np.exp(z2)
+    z2_normalize = z2_exp / (np.sum(z2_exp, axis = 1)[:, None])
+    I = np.eye(W2.shape[1])
+    I_y = I[y]
+    H = z2_normalize - I_y
+    dW2 = np.transpose(z1_relu) @ H / X.shape[0]
+    dW1 = np.transpose(X) @ (np.where(z1 > 0.0, 1.0, 0.0) * (H @ W2.T)) / X.shape[0]
+    W1 -= dW1 * lr
+    W2 -= dW2 * lr
 
 ### CODE BELOW IS FOR ILLUSTRATION, YOU DO NOT NEED TO EDIT
 
