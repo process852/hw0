@@ -33,7 +33,50 @@ void softmax_regression_epoch_cpp(const float *X, const unsigned char *y,
      */
 
     /// BEGIN YOUR CODE
+    size_t iters = m / batch; // 迭代次数
+    for(size_t i = 0; i < iters; i++){
+        // 计算矩阵相乘
+        float* Z = new float[batch * k]; // 中间矩阵 (batch, k)
+        for(size_t r = i * batch; r < (i+1) * batch; r++){
+            for(size_t c = 0; c < k; c++){
+                float sum = 0.0f;
+                for(size_t inter = 0; inter < n; inter++){
+                    sum += X[r*n + inter] * theta[inter * k + c];
+                }
+                Z[(r - i*batch)*k + c] = sum;
+            }
+        }
+        float* ZSum = new float[batch];
+        for(int iz = 0; iz < batch; iz++){
+            for(int j = 0; j < k; j++){
+                ZSum[iz] += std::expf(Z[iz*k + j]);
+            }
+        }
+        // normalize
+        for(int iz = 0; iz < batch; iz++){
+            for(int j = 0; j < k; j++){
+                Z[iz*k + j] = std::exp(Z[iz*k + j]) / ZSum[iz];
+            }
+        }
+        // Z - Iy
+        for(int iz = 0; iz < batch; iz++){
+            int yIndex = y[i*batch + iz];
+            Z[iz * k + yIndex] -= 1.0f;
+        }
+        // update theta
+        for(size_t iz = 0; iz < n; iz++){
+            for(size_t jz = 0; jz < k; jz++){
+                float sum = 0.0f;
+                for(size_t im = 0; im < batch; im++){
+                    sum += X[im*n + i*batch*n + iz] * Z[im * k + jz];
 
+                }
+                theta[iz*k + jz] -= (lr / batch * sum );
+            }
+        }
+        delete [] ZSum;
+        delete [] Z;
+    }
     /// END YOUR CODE
 }
 
